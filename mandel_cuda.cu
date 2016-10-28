@@ -45,7 +45,8 @@ double walltime() {
 }
 
 /* Acutal GPU kenel which will be executed in parallel on the GPU */
-__global__ void mandel_kernel( /* Add arguments here */ ){
+__global__ void mandel_kernel(int *device_pixel/* Add arguments here */ ){
+      int threadID = threadIdx.x + blockIdx.x * blockDim.x;
       
 }
 
@@ -55,6 +56,14 @@ void calculate_cuda(int* pixel){
     // Compute thread-block size
     // Call kernel
     // Transfer result from GPU to CPU
+
+    int* device_pixel;
+    cudaMalloc(&device_pixel,sizeof(int)*XSIZE*YSIZE);
+    cudaMemcpy(device_pixel, pixel,sizeof(int)*XSIZE*YSIZE,cudaMemcpyHostToDevice);
+
+    mandel_kernel<<<,>>>(device_pixel);
+
+    cudaMemcpy(device_pixel, pixel,sizeof(int)*XSIZE*YSIZE,cudaMemcpyDeviceToHost);
 }
     
 
@@ -102,7 +111,7 @@ int main(int argc, char **argv) {
   cudaDeviceProp device_prop;
   cudaGetDeviceProperties(&device_prop, 0);
   printf("CUDA device name: %s\n" , device_prop.name);
-  
+  printf("Max threads per block: %i\n",device_prop.maxThreadsPerBlock);
   /* Calculate the range in the y - axis such that we preserve the aspect ratio */
   step = (xright - xleft)/XSIZE;
   yupper = ycenter + (step * YSIZE)/2;
