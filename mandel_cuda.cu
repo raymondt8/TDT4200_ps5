@@ -133,7 +133,7 @@ int main(int argc, char **argv) {
   
   /* Perform calculations on GPU */
   double start_gpu = walltime();
-  calculate_cuda(pixel_for_gpu);
+  //calculate_cuda(pixel_for_gpu);
   double end_gpu = walltime();
   
   /* Compare execution times
