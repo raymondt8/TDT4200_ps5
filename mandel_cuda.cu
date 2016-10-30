@@ -46,8 +46,22 @@ double walltime() {
 
 /* Acutal GPU kenel which will be executed in parallel on the GPU */
 __global__ void mandel_kernel(int *device_pixel/* Add arguments here */ ){
-    //  int threadID = threadIdx.x + blockIdx.x * blockDim.x;
-          
+    int threadID = threadIdx.x + blockIdx.x * blockDim.x;
+    complex_t c,z, temp;
+    int iter =0;
+    c.real = (xleft + step * (threadID%XSIZE));
+    c.imag = (ylower + step * ((int)(threadID/YSIZE)));
+    z = c;
+    while (z.real * z.real + z.imag * z.imag < 4) {
+        temp.real = z.real * z.real - z.imag * z.imag + c.real;
+        temp.imag = 2 * z.real * z.imag + c.imag;
+        z = temp;
+        iter++;
+        if(iter == MAXITER){
+            break;
+        }
+    }
+    device_pixel[threadID] = iter;
 }
 
 /* Set up and call GPU kernel */
@@ -56,12 +70,15 @@ void calculate_cuda(int* pixel){
     // Compute thread-block size
     // Call kernel
     // Transfer result from GPU to CPU
-
+    int pixelCount = XSIZE*YSIZE;
     int* device_pixel;
-    cudaMalloc(&device_pixel,sizeof(int)*XSIZE*YSIZE);
-    cudaMemcpy(device_pixel, pixel,sizeof(int)*XSIZE*YSIZE,cudaMemcpyHostToDevice);
+    cudaMalloc(&device_pixel,sizeof(int)*pixelcount);
+    cudaMemcpy(device_pixel, pixel,sizeof(int)*pixelcount,cudaMemcpyHostToDevice);
+    cudaDeviceProp device_prop;
+    cudaGetDeviceProperties(&device_prop, 0);
+    int blocks = ceil(pixelcount/device_prop.maxThreadsPerBlock);
 
-    mandel_kernel<<<8,128>>>(device_pixel);
+    mandel_kernel<<<blocks,maxThreadsPerBlock>>>(device_pixel);
 
     cudaMemcpy(device_pixel, pixel,sizeof(int)*XSIZE*YSIZE,cudaMemcpyDeviceToHost);
 }
