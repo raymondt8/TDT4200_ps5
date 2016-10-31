@@ -45,7 +45,7 @@ double walltime() {
 }
 
 /* Acutal GPU kenel which will be executed in parallel on the GPU */
-__global__ void mandel_kernel(int *device_pixel/* Add arguments here */ ){
+__global__ void mandel_kernel(int *device_pixel,float xleft,float ylower,int step/* Add arguments here */ ){
     int threadID = threadIdx.x + blockIdx.x * blockDim.x;
     complex_t c,z, temp;
     int iter =0;
@@ -78,7 +78,7 @@ void calculate_cuda(int* pixel){
     cudaGetDeviceProperties(&device_prop, 0);
     int blocks = ceil(pixelcount/device_prop.maxThreadsPerBlock);
 
-    mandel_kernel<<<blocks,maxThreadsPerBlock>>>(device_pixel);
+    mandel_kernel<<<blocks,maxThreadsPerBlock>>>(device_pixel, xleft, ylower, step);
 
     cudaMemcpy(device_pixel, pixel,sizeof(int)*XSIZE*YSIZE,cudaMemcpyDeviceToHost);
 }
