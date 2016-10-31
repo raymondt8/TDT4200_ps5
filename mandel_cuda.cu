@@ -72,18 +72,17 @@ void calculate_cuda(int* pixel){
     // Transfer result from GPU to CPU
     int pixelCount = XSIZE*YSIZE;
     int* device_pixel;
-    cudaMalloc(&device_pixel,sizeof(int)*pixelcount);
-    cudaMemcpy(device_pixel, pixel,sizeof(int)*pixelcount,cudaMemcpyHostToDevice);
+    cudaMalloc(&device_pixel,sizeof(int)*pixelCount);
+    cudaMemcpy(device_pixel, pixel,sizeof(int)*pixelCount,cudaMemcpyHostToDevice);
     cudaDeviceProp device_prop;
     cudaGetDeviceProperties(&device_prop, 0);
     int blocks = ceil(pixelcount/device_prop.maxThreadsPerBlock);
 
-    mandel_kernel<<<blocks,maxThreadsPerBlock>>>(device_pixel, xleft, ylower, step);
+    mandel_kernel<<<blocks,device_prop.maxThreadsPerBlock>>>(device_pixel, xleft, ylower, step);
 
     cudaMemcpy(device_pixel, pixel,sizeof(int)*XSIZE*YSIZE,cudaMemcpyDeviceToHost);
 }
     
-
 /* Calculate the number of iterations until divergence for each pixel.
  * If divergence never happens, return MAXITER
  */
