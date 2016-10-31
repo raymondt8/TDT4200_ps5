@@ -76,7 +76,7 @@ void calculate_cuda(int* pixel){
     cudaMemcpy(device_pixel, pixel,sizeof(int)*pixelCount,cudaMemcpyHostToDevice);
     cudaDeviceProp device_prop;
     cudaGetDeviceProperties(&device_prop, 0);
-    int blocks = ceil(pixelcount/device_prop.maxThreadsPerBlock);
+    int blocks = ceil(pixelCount/device_prop.maxThreadsPerBlock);
 
     mandel_kernel<<<blocks,device_prop.maxThreadsPerBlock>>>(device_pixel, xleft, ylower, step);
 
@@ -149,7 +149,7 @@ int main(int argc, char **argv) {
   
   /* Perform calculations on GPU */
   double start_gpu = walltime();
-  //calculate_cuda(pixel_for_gpu);
+  calculate_cuda(pixel_for_gpu);
   double end_gpu = walltime();
   
   /* Compare execution times
