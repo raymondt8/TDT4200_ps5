@@ -161,7 +161,7 @@ int main(int argc, char **argv) {
 
   /* Output */
   if (strtol(argv[1], NULL, 10) != 0) {
-      output(pixel_for_cpu);
+      output(pixel_for_gpu);
   }
   
   return 0;
