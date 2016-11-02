@@ -2,7 +2,6 @@
 #include <stdlib.h>
 #include <sys/time.h>
 #include <cuda.h>
-#include <unistd.h>
 
 /* Shorthand for less typing */
 typedef unsigned char uchar;
@@ -37,16 +36,6 @@ float yupper, ylower;
 /* Distance between numbers */
 float step;
 
-//dim3 block2D(XSIZE,YSIZE)
-#define gpuErrchk(ans) { gpuAssert((ans), __FILE__, __LINE__); }
-inline void gpuAssert(cudaError_t code, const char *file, int line, bool abort=true)
-{
-   if (code != cudaSuccess) 
-   {
-      fprintf(stderr,"GPUassert: %s %s %d\n", cudaGetErrorString(code), file, line);
-      if (abort) exit(code);
-   }
-}
 
 /* Timing */
 double walltime() {
@@ -56,10 +45,8 @@ double walltime() {
 }
 
 /* Acutal GPU kenel which will be executed in parallel on the GPU */
-__global__ void mandel_kernel(int *device_pixel,float xleft,float ylower,float step/* Add arguments here */ ){
-    int threadID = threadIdx.x + blockIdx.x * blockDim.x;
-    //int i = blockIdx.x * blockDim.x + threadIdx.x;
-    //int j = blockIdx.y * blockDim.y + threadIdx.y;
+//__global__ void mandel_kernel(int *device_pixel,float xleft,float ylower,int step/* Add arguments here */ ){
+/*    int threadID = threadIdx.x + blockIdx.x * blockDim.x;
     complex_t c,z, temp;
     int iter =0;
     c.real = (xleft + step * (threadID%XSIZE));
@@ -75,29 +62,28 @@ __global__ void mandel_kernel(int *device_pixel,float xleft,float ylower,float s
         }
     }
     device_pixel[threadID] = iter;
-}
+}*/
 
 /* Set up and call GPU kernel */
 
-void calculate_cuda(int* pixel){
+/*void calculate_cuda(int* pixel){
     // Allocate memory
     // Compute thread-block size
     // Call kernel
     // Transfer result from GPU to CPU
     int pixelCount = XSIZE*YSIZE;
     int* device_pixel;
-    gpuErrchk(cudaMalloc(&device_pixel,sizeof(int)*pixelCount));
-    gpuErrchk(cudaMemcpy(device_pixel, pixel,sizeof(int)*pixelCount,cudaMemcpyHostToDevice));
-
+    cudaMalloc(&device_pixel,sizeof(int)*pixelCount);
+    cudaMemcpy(device_pixel, pixel,sizeof(int)*pixelCount,cudaMemcpyHostToDevice);
     cudaDeviceProp device_prop;
-    gpuErrchk(cudaGetDeviceProperties(&device_prop, 0));
+    cudaGetDeviceProperties(&device_prop, 0);
     int blocks = ceil(pixelCount/device_prop.maxThreadsPerBlock);
-printf("blocks %d \n",blocks);
+
     mandel_kernel<<<blocks,device_prop.maxThreadsPerBlock>>>(device_pixel, xleft, ylower, step);
-    gpuErrchk( cudaPeekAtLastError() ); 
-    gpuErrchk(cudaMemcpy(pixel, device_pixel,sizeof(int)*pixelCount,cudaMemcpyDeviceToHost));
+
+    cudaMemcpy(device_pixel, pixel,sizeof(int)*XSIZE*YSIZE,cudaMemcpyDeviceToHost);
 }
-    
+*/    
 /* Calculate the number of iterations until divergence for each pixel.
  * If divergence never happens, return MAXITER
  */
@@ -119,6 +105,7 @@ void calculate(int* pixel) {
         }
       }
       pixel[j * XSIZE + i] = iter;
+    //if(iter>=100) printf("Iter:%d",iter);
     }
   }
 }
@@ -137,12 +124,12 @@ int main(int argc, char **argv) {
    * and print the name of the first one.
    */
   int n_devices;
-  gpuErrchk(cudaGetDeviceCount(&n_devices));
+  //cudaGetDeviceCount(&n_devices);
   printf("Number of CUDA devices: %d\n", n_devices);
-  cudaDeviceProp device_prop;
-  cudaGetDeviceProperties(&device_prop, 0);
-  printf("CUDA device name: %s\n" , device_prop.name);
-  printf("Max threads per block: %i\n",device_prop.maxThreadsPerBlock);
+  //cudaDeviceProp device_prop;
+  //cudaGetDeviceProperties(&device_prop, 0);
+  //printf("CUDA device name: %s\n" , device_prop.name);
+  //printf("Max threads per block: %i\n",device_prop.maxThreadsPerBlock);
   /* Calculate the range in the y - axis such that we preserve the aspect ratio */
   step = (xright - xleft)/XSIZE;
   yupper = ycenter + (step * YSIZE)/2;
@@ -164,20 +151,21 @@ int main(int argc, char **argv) {
   
   /* Perform calculations on GPU */
   double start_gpu = walltime();
-  calculate_cuda(pixel_for_gpu);
+  //calculate_cuda(pixel_for_gpu);
   double end_gpu = walltime();
   
   /* Compare execution times
    * The GPU time also includes the time for memory allocation and transfer
    */
   printf("CPU time: %f s\n" , (end_cpu-start_cpu));
-  printf("GPU time: %f s\n" , (end_gpu-start_gpu 
+  printf("GPU time: %f s\n" , (end_gpu-start_gpu));
+  
 
   /* Output */
   if (strtol(argv[1], NULL, 10) != 0) {
       output(pixel_for_cpu);
   }
- printf("Writing to image completed\n"); 
+  
   return 0;
 }
 
