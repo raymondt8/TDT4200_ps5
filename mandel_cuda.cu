@@ -65,6 +65,7 @@ __global__ void mandel_kernel(int *device_pixel,float xleft,float ylower,int ste
 }
 
 /* Set up and call GPU kernel */
+
 void calculate_cuda(int* pixel){
     // Allocate memory
     // Compute thread-block size
@@ -156,12 +157,11 @@ int main(int argc, char **argv) {
    * The GPU time also includes the time for memory allocation and transfer
    */
   printf("CPU time: %f s\n" , (end_cpu-start_cpu));
-  printf("GPU time: %f s\n" , (end_gpu-start_gpu));
-  
+  printf("GPU time: %f s\n" , (end_gpu-start_gpu 
 
   /* Output */
   if (strtol(argv[1], NULL, 10) != 0) {
-      output(pixel_for_gpu);
+      output(pixel_for_cpu);
   }
   
   return 0;
