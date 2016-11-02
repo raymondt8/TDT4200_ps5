@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <sys/time.h>
 #include <cuda.h>
+#include <unistd.h>
 
 /* Shorthand for less typing */
 typedef unsigned char uchar;
@@ -36,6 +37,16 @@ float yupper, ylower;
 /* Distance between numbers */
 float step;
 
+//dim3 block2D(XSIZE,YSIZE)
+#define gpuErrchk(ans) { gpuAssert((ans), __FILE__, __LINE__); }
+inline void gpuAssert(cudaError_t code, const char *file, int line, bool abort=true)
+{
+   if (code != cudaSuccess) 
+   {
+      fprintf(stderr,"GPUassert: %s %s %d\n", cudaGetErrorString(code), file, line);
+      if (abort) exit(code);
+   }
+}
 
 /* Timing */
 double walltime() {
@@ -45,8 +56,10 @@ double walltime() {
 }
 
 /* Acutal GPU kenel which will be executed in parallel on the GPU */
-__global__ void mandel_kernel(int *device_pixel,float xleft,float ylower,int step/* Add arguments here */ ){
+__global__ void mandel_kernel(int *device_pixel,float xleft,float ylower,float step/* Add arguments here */ ){
     int threadID = threadIdx.x + blockIdx.x * blockDim.x;
+    //int i = blockIdx.x * blockDim.x + threadIdx.x;
+    //int j = blockIdx.y * blockDim.y + threadIdx.y;
     complex_t c,z, temp;
     int iter =0;
     c.real = (xleft + step * (threadID%XSIZE));
@@ -72,15 +85,16 @@ void calculate_cuda(int* pixel){
     // Transfer result from GPU to CPU
     int pixelCount = XSIZE*YSIZE;
     int* device_pixel;
-    cudaMalloc(&device_pixel,sizeof(int)*pixelCount);
-    cudaMemcpy(device_pixel, pixel,sizeof(int)*pixelCount,cudaMemcpyHostToDevice);
+    gpuErrchk(cudaMalloc(&device_pixel,sizeof(int)*pixelCount));
+    gpuErrchk(cudaMemcpy(device_pixel, pixel,sizeof(int)*pixelCount,cudaMemcpyHostToDevice));
+
     cudaDeviceProp device_prop;
-    cudaGetDeviceProperties(&device_prop, 0);
+    gpuErrchk(cudaGetDeviceProperties(&device_prop, 0));
     int blocks = ceil(pixelCount/device_prop.maxThreadsPerBlock);
-
+printf("blocks %d \n",blocks);
     mandel_kernel<<<blocks,device_prop.maxThreadsPerBlock>>>(device_pixel, xleft, ylower, step);
-
-    cudaMemcpy(device_pixel, pixel,sizeof(int)*XSIZE*YSIZE,cudaMemcpyDeviceToHost);
+    gpuErrchk( cudaPeekAtLastError() ); 
+    gpuErrchk(cudaMemcpy(pixel, device_pixel,sizeof(int)*pixelCount,cudaMemcpyDeviceToHost));
 }
     
 /* Calculate the number of iterations until divergence for each pixel.
@@ -122,7 +136,7 @@ int main(int argc, char **argv) {
    * and print the name of the first one.
    */
   int n_devices;
-  cudaGetDeviceCount(&n_devices);
+  gpuErrchk(cudaGetDeviceCount(&n_devices));
   printf("Number of CUDA devices: %d\n", n_devices);
   cudaDeviceProp device_prop;
   cudaGetDeviceProperties(&device_prop, 0);
@@ -163,7 +177,7 @@ int main(int argc, char **argv) {
   if (strtol(argv[1], NULL, 10) != 0) {
       output(pixel_for_gpu);
   }
-  
+ printf("Writing to image completed\n"); 
   return 0;
 }
 
